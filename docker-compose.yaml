@@ -1,45 +1,18 @@
 version: '3'
 
 services:
-  reverse-proxy:
-      image: nginx:alpine
-      ports:
-        - "80:80"
-        - "443:443"
-      volumes:
-        - ./nginx.conf:/etc/nginx/nginx.conf
-        - /etc/letsencrypt:/etc/letsencrypt
-  postgres:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   webserver:
-    env_file:
-      - .env
     image: apache/airflow:2.8.0
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: "my_airflow_secret_123"
-      AIRFLOW__CORE__FERNET_KEY: yZV8RhLqNNsfIMoRYF1rudeAG06vn2IOGEuYTby4LO0=
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: ${AIRFLOW__CORE__SQL_ALCHEMY_CONN}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-      EMAIL_HOST: "smtp.gmail.com"
-      EMAIL_PORT: 587
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
       EMAIL_USER: ${EMAIL_USER}
-      EMAIL_PASS: ${EMAIL_PASS}  # Value comes from .env
+      EMAIL_PASS: ${EMAIL_PASS}
       EMAIL_TO: ${EMAIL_USER}
     volumes:
       - ./dags:/opt/airflow/dags
@@ -53,32 +26,23 @@ services:
                airflow webserver"
 
   scheduler:
-    env_file:
-      - .env
     image: apache/airflow:2.8.0
     depends_on:
       - webserver  # Wait for webserver to finish initialization
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: "my_airflow_secret_123"
-      AIRFLOW__CORE__FERNET_KEY: yZV8RhLqNNsfIMoRYF1rudeAG06vn2IOGEuYTby4LO0=
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: ${AIRFLOW__CORE__SQL_ALCHEMY_CONN}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-      EMAIL_HOST: "smtp.gmail.com"
-      EMAIL_PORT: 587
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
       EMAIL_USER: ${EMAIL_USER}
-      EMAIL_PASS: ${EMAIL_PASS}  # Value comes from .env
+      EMAIL_PASS: ${EMAIL_PASS}
       EMAIL_TO: ${EMAIL_USER}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./requirements.txt:/requirements.txt
     command: >
       bash -c "pip install -r /requirements.txt &&
-               airflow scheduler"  # No `db init` needed here
-
-volumes:
-  postgres-db-volume:
-  
-networks:
-  airflow-net:
-    internal: true  # No external access
+               airflow scheduler"

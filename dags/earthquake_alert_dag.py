@@ -18,14 +18,15 @@ EMAIL_TO = os.getenv("EMAIL_TO")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")  # Matches Postgres service name in Docker
+DB_HOST = os.getenv("DB_HOST")
 
 DB_CONFIG = {
     "dbname": DB_NAME,
     "user": DB_USER,
     "password": DB_PASSWORD,
     "host": DB_HOST,  # Matches Postgres service name in Docker
-    "port": 5432
+    "port": 5432,
+    "sslmode": "require"
 }
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -107,7 +108,7 @@ def check_and_alert():
             msg = f'🌏 Earthquake Alert!\nLocation: {place}\nMagnitude: {mag}\nDistance from TH: {dist:.1f} km\nTime: {occurred_at.strftime("%Y-%m-%d %H:%M:%S")}'
             print(msg)
             notified = send_email_alert("🌏 Earthquake Alert", msg)
-#            save_to_db(event_id, place, mag, dist, occurred_at, notified)
+            save_to_db(event_id, place, mag, dist, occurred_at, notified)
 
 # === DAG DEFINITION ===
 default_args = {
